@@ -104,7 +104,6 @@ def buildtree(data,criteria,o_criteria):
                 best_c=c
                 best_v=data[ind][ci]
                 best_e=terror
-    print(best_c[0])
     cu=list(criteria)
     cu.remove(best_c)
     l,r=split(data,lambda x: x[index(o_criteria,best_c)]>=best_v)
@@ -129,6 +128,12 @@ def index(l,item):
         if l[i]==item:
             return i
     return -1
+def fin_error(data,tree):
+    error=0.0
+    for i in data:
+        error+=(i[-1]-pred_val(tree,i))**2
+    error/=len(data)
+    return error
 
 random.seed(time.time())
 h,d=read("train.csv")
@@ -142,7 +147,5 @@ comparable =[True,True,True,True,True,True,True,True,True]
 h = list(map(lambda x,y: [x,y] , h , comparable))
 print(float("inf")==float("inf"))
 t=buildtree(d,h,h)
-
-print("t")
-
-print(pred_val(t,[201101010000.0,1.0,0.0,0.0,1.0,9.84,14.395,81.0,0.0]))
+print(error(d))
+print(fin_error(d,t))
