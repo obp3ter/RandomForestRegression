@@ -55,7 +55,7 @@ def sample(data):
     '''
     sample with replacement of the data
     '''  
-    return random.sample(data, random.randint(len(data)//100*min_nr_sample, int(len(data)/100*max_nr_sample))) 
+    return random.sample(data, random.randint(int(len(data)/100*min_nr_sample), int(len(data)/100*max_nr_sample))) 
 def split(data, func):
     '''
     splits the tree into two parts by the function
@@ -89,7 +89,7 @@ def buildtree(data,criteria,o_criteria,prev_avg=-1):
         avg+=i[-1]
     avg/= len(data)
     if criteria==[]:
-        return [int(round(avg))]
+        return [avg]
 
     best_c,best_v,best_e=["",False],9999,float("inf")
     for c in criteria:
@@ -149,7 +149,7 @@ def prediction(trees, item):
         avg+=pred_val(t,item)
     avg/=len(trees)
 
-    return int(round(avg))
+    return avg
 def prediction_int(trees, item):
     '''
     returns the prediction
@@ -159,7 +159,7 @@ def prediction_int(trees, item):
         avg+=pred_val(t,item)
     avg/=len(trees)
 
-    return avg
+    return int(round(avg))
 
 def pred_val(tree, item):
     if len(tree)==1:
@@ -211,7 +211,9 @@ def smallest_dif2(data,trees,prediction):
             pred=pr
     return val,pred
 
-random.seed(time.time())
+seed=0 #time.time()
+
+random.seed(seed)
 h,d=read("train.csv")
 dropcolumn(d,9)
 dropcolumn(d,9)
@@ -227,10 +229,11 @@ for i in range(0,nrtree):
     print(i)
     ds=sample(d)
     c=sample(h)
+    print([thing[0] for thing in c])
     tt=buildtree(ds,c,h)
     trees.append(tt)
 
-    p=prediction_int
+    p=prediction
 print(fin_error2(d,trees,p))
 val,pred=biggest_dif2(d,trees,p)
 print("biggest difference:\nval:"+str(val)+" pred:"+str(pred))
@@ -255,7 +258,6 @@ ax.set_ylabel("Error%")
 ax.legend(loc='upper right')
 fig.show()
 
-m.getch()
 '''
 import pandas as pd  
 
@@ -287,5 +289,20 @@ from sklearn import metrics
 
 print('Mean Absolute Error:', metrics.mean_absolute_error(y, y_pred))  
 print('Mean Squared Error:', metrics.mean_squared_error(y, y_pred))  
-print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y, y_pred)))  
+print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y, y_pred))) 
+
+oval=[]
+predval=[]
+for e in d:
+    oval.append(e[-1])
+    predval.append(p(trees,e))
+
+fig=plt.figure()
+ax=fig.add_subplot(111)
+ax.plot(np.array(range(1,len(d)+1)),np.array(oval),c='y', label="Original")
+ax.plot(np.array(range(1,len(d)+1)),y_pred,c='r', label="Predicted")
+ax.set_xlabel("Depth")
+ax.set_ylabel("Error%")
+ax.legend(loc='upper right')
+fig.show()
 '''
