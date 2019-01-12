@@ -199,8 +199,7 @@ trees=[]
 for i in range(0,nrtree):
     print(i)
     ds=sample(d)
-    #c=sample(h)
-    c=list(h)
+    c=sample(h)
     tt=buildtree(ds,c,c)
     trees.append(tt)
 
