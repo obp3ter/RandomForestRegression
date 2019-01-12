@@ -3,11 +3,12 @@ import random
 import time
 import itertools
 import math
+import msvcrt as m
 
-min_nr_sample=80 #minimum % number of items in a sample
+min_nr_sample=50 #minimum % number of items in a sample
 max_nr_sample=100 #minimum % number of items in a sample
 nrtree=10 #number of trees fused in the random forest
-nrsplit=25 #number of splits for comparable variables
+nrsplit=15 #number of splits for comparable variables
 onlyhour=True
 def read(file):
     '''
@@ -94,24 +95,50 @@ def buildtree(data,criteria,o_criteria,prev_avg=-1):
     for c in criteria:
         ci=index(o_criteria,c)
         sdata=sorted(data,key=lambda x:x[ci])
-        for spliti in range(0,nrsplit-1):
-            ind=int(len(data)/nrsplit*(spliti+1))
-            l,r=split(sdata,lambda x: x[ci] >= data[ind][ci])
-            if len(l) == 0:
-                terror=error(r)
-            elif len(r) == 0:
-                terror=error(l)
-            else:
-                terror=error(l)
-                terror+=error(r)
-            if(terror<best_e or best_e==float("inf")):
-                best_c=c
-                best_v=data[ind][ci]
-                best_e=terror
+        if(c[1]):
+            for spliti in range(0,nrsplit-1):
+
+                ind=int(len(data)/nrsplit*(spliti+1))
+                l,r=split(sdata,lambda x: x[ci] >= data[ind][ci])
+                if len(l) == 0:
+                    terror=error(r)
+                elif len(r) == 0:
+                    terror=error(l)
+                else:
+                    terror=error(l)
+                    terror+=error(r)
+                if(terror<best_e or best_e==float("inf")):
+                    best_c=c
+                    best_v=data[ind][ci]
+                    best_e=terror
+        else:
+            tempi=[x[ci] for x in data]
+            tempset=set(tempi)
+            tempi=list(tempset)
+
+            for cat in tempi:
+                l,r=split(sdata,lambda x: x[ci]==cat)
+                if len(l) == 0:
+                    terror=error(r)
+                elif len(r) == 0:
+                    terror=error(l)
+                else:
+                    terror=error(l)
+                    terror+=error(r)
+                if(terror<best_e or best_e==float("inf")):
+                    best_c=c
+                    best_v=cat
+                    best_e=terror
+
+
     cu=list(criteria)
-    cu.remove(best_c)
     l,r=split(data,lambda x: x[index(o_criteria,best_c)]>=best_v)
-    return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
+    if len(l) == 0 or len(r) == 0:
+        cu.remove(best_c)
+    if(c[1]):
+        return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
+    else:
+        return [lambda x: x[index(o_criteria,best_c)]==best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
 
 def prediction(trees, item):
     '''
@@ -200,7 +227,7 @@ for i in range(0,nrtree):
     print(i)
     ds=sample(d)
     c=sample(h)
-    tt=buildtree(ds,c,c)
+    tt=buildtree(ds,c,h)
     trees.append(tt)
 
     p=prediction_int
@@ -210,9 +237,27 @@ print("biggest difference:\nval:"+str(val)+" pred:"+str(pred))
 val,pred=smallest_dif2(d,trees,p)
 print("smallest difference:\nval:"+str(val)+" pred:"+str(pred))
 
+import numpy as np 
+import matplotlib.pyplot as plt
+
+oval=[]
+predval=[]
+for e in d:
+    oval.append(e[-1])
+    predval.append(p(trees,e))
+
+fig=plt.figure()
+ax=fig.add_subplot(111)
+ax.plot(np.array(range(1,len(d)+1)),np.array(oval),c='y', label="Original")
+ax.plot(np.array(range(1,len(d)+1)),np.array(predval),c='r', label="Predicted")
+ax.set_xlabel("Depth")
+ax.set_ylabel("Error%")
+ax.legend(loc='upper right')
+fig.show()
+
+m.getch()
 '''
 import pandas as pd  
-import numpy as np 
 
 dataset = pd.read_csv("train.csv")
 X = dataset.iloc[:,0:8].values
