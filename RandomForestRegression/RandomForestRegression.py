@@ -77,17 +77,17 @@ def error(data):
         error+= (avg - i[-1])**2
     error/= len(data)
     return error
-def buildtree(data,criteria,o_criteria):
+def buildtree(data,criteria,o_criteria,prev_avg=-1):
     '''
     build a tree with the given subspace 
     '''
     if len(data)==0:
-        return [-1]
+        return [prev_avg]
+    avg = 0.0
+    for i in data:
+        avg+=i[-1]
+    avg/= len(data)
     if criteria==[]:
-        avg = 0.0
-        for i in data:
-            avg+=i[-1]
-        avg/= len(data)
         return [int(round(avg))]
 
     best_c,best_v,best_e=["",False],9999,float("inf")
@@ -111,9 +111,19 @@ def buildtree(data,criteria,o_criteria):
     cu=list(criteria)
     cu.remove(best_c)
     l,r=split(data,lambda x: x[index(o_criteria,best_c)]>=best_v)
-    return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,cu,o_criteria),buildtree(r,cu,o_criteria)]
+    return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
 
 def prediction(trees, item):
+    '''
+    returns the prediction
+    '''
+    avg=0.0
+    for t in trees:
+        avg+=pred_val(t,item)
+    avg/=len(trees)
+
+    return int(round(avg))
+def prediction_int(trees, item):
     '''
     returns the prediction
     '''
@@ -143,13 +153,11 @@ def fin_error(data,tree):
         error+=(i[-1]-pred_val(tree,i))**2
     error/=len(data)
     return error
-def fin_error2(data,trees):
+def fin_error2(data,trees,prediction):
     error=0.0
     for i in data:
         p=prediction(trees,i)
         error+=(i[-1]-p)**2
-        if p==-1.0:
-            print ("-1")
     error/=len(data)
     return error
 def biggest_dif(data,tree):
@@ -159,7 +167,7 @@ def biggest_dif(data,tree):
             val=i[-1]
             pred=pred_val(tree,i)
     return val,pred
-def biggest_dif2(data,trees):
+def biggest_dif2(data,trees,prediction):
     val,pred=0.0,0.0
     for i in data:
         pr=prediction(trees,i)
@@ -167,7 +175,7 @@ def biggest_dif2(data,trees):
             val=i[-1]
             pred=pr
     return val,pred
-def smallest_dif2(data,trees):
+def smallest_dif2(data,trees,prediction):
     val,pred=0.0,100000000000000000000.0
     for i in data:
         pr=prediction(trees,i)
@@ -191,15 +199,18 @@ trees=[]
 for i in range(0,nrtree):
     print(i)
     ds=sample(d)
-    c=sample(h)
+    #c=sample(h)
+    c=list(h)
     tt=buildtree(ds,c,c)
     trees.append(tt)
 
-print(fin_error2(d,trees))
-val,pred=biggest_dif2(d,trees)
+    p=prediction_int
+print(fin_error2(d,trees,p))
+val,pred=biggest_dif2(d,trees,p)
 print("biggest difference:\nval:"+str(val)+" pred:"+str(pred))
-val,pred=smallest_dif2(d,trees)
+val,pred=smallest_dif2(d,trees,p)
 print("smallest difference:\nval:"+str(val)+" pred:"+str(pred))
+
 '''
 import pandas as pd  
 import numpy as np 
