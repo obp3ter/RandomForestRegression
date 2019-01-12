@@ -8,7 +8,7 @@ import msvcrt as m
 min_nr_sample=50 #minimum % number of items in a sample
 max_nr_sample=100 #minimum % number of items in a sample
 nrtree=10 #number of trees fused in the random forest
-nrsplit=15 #number of splits for comparable variables
+nrsplit=10 #number of splits for comparable variables
 onlyhour=True
 def read(file):
     '''
@@ -51,7 +51,7 @@ def dropcolumn(data,index):
     '''
     for row in data:
         row.pop(index)
-def sample(data):
+def sample(data,min_nr_sample=50,max_nr_sample=100):
     '''
     sample with replacement of the data
     '''  
@@ -228,7 +228,7 @@ trees=[]
 for i in range(0,nrtree):
     print(i)
     ds=sample(d)
-    c=sample(h)
+    c=sample(h,80,100)
     print([thing[0] for thing in c])
     tt=buildtree(ds,c,h)
     trees.append(tt)
