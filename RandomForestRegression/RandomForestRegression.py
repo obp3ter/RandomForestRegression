@@ -4,6 +4,8 @@ import time
 import itertools
 import math
 import msvcrt as m
+import numpy as np 
+import matplotlib.pyplot as plt
 
 min_nr_sample=50 #minimum % number of items in a sample
 max_nr_sample=100 #minimum % number of items in a sample
@@ -78,7 +80,7 @@ def error(data):
         error+= (avg - i[-1])**2
     error/= len(data)
     return error
-def buildtree(data,o_criteria,a_criteria,prev_avg=-1):
+def buildtree(data,o_criteria,a_criteria,prev_avg=-1,max_leaf=1,max_depth=-1,sample_size=-1):
     '''
     build a tree with the given subspace 
     '''
@@ -88,9 +90,13 @@ def buildtree(data,o_criteria,a_criteria,prev_avg=-1):
     for i in data:
         avg+=i[-1]
     avg/= len(data)
-    if len(data)<2:
+    if max_depth==0:
         return [avg]
-    criteria=sample(a_criteria, 75 ,100)
+    if len(data)<(max_leaf+1):
+        return [avg]
+    if sample_size==-1:
+        sample_size=random.randint(int(len(o_criteria)/100*75), int(len(o_criteria)/100*100))
+    criteria=random.sample(a_criteria ,sample_size)
     if criteria==[]:
         return [avg]
     best_c,best_v,best_e=["",False],9999,float("inf")
@@ -132,22 +138,21 @@ def buildtree(data,o_criteria,a_criteria,prev_avg=-1):
                     best_v=cat
                     best_e=terror
 
-
     l,r=split(data,lambda x: x[index(o_criteria,best_c)]>=best_v)
-    cu=list(a_criteria)
-    #if len(l) == 0 or len(r) == 0:
-    #    cu.remove(best_c)
-    #print(str(len(l))+", "+str(len(r))+"    "+best_c[0]+"    "+str(best_v))
     if best_c[0]=="":
         return [avg]
     if len(l)==0:
-        return buildtree(r,o_criteria,cu,avg)
+        return buildtree(r,o_criteria,a_criteria,avg,max_leaf,max_depth-1,sample_size)
     if len(r)==0:
-        return buildtree(l,o_criteria,cu,avg)
+        return buildtree(l,o_criteria,a_criteria,avg,max_leaf,max_depth-1,sample_size)
     if(c[1]):
-        return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,o_criteria,cu,avg),buildtree(r,o_criteria,cu,avg)]
+        return [lambda x: x[index(o_criteria,best_c)]>=best_v,
+               buildtree(l,o_criteria,a_criteria,avg,max_leaf,max_depth-1, sample_size),
+               buildtree(r,o_criteria,a_criteria,avg,max_leaf,max_depth-1,sample_size)]
     else:
-        return [lambda x: x[index(o_criteria,best_c)]==best_v, buildtree(l,o_criteria,cu,avg),buildtree(r,o_criteria,cu,avg)]
+        return [lambda x: x[index(o_criteria,best_c)]==best_v, 
+                buildtree(l,o_criteria,a_criteria,avg,max_leaf,max_depth-1, sample_size), 
+                buildtree(r,o_criteria,a_criteria,avg,max_leaf,max_depth-1,sample_size)]
 
 def prediction(trees, item):
     '''
@@ -223,17 +228,28 @@ def smallest_dif2(data,trees,prediction):
 seed=0 #time.time()
 
 random.seed(seed)
-h,d=read("train.csv")
+h,data=read("train.csv")
+d=random.sample(data,int(len(data)*0.75))
+t=[]
+for i in data:
+    if i in d:
+        continue
+    else:
+        t.append(i)
 dropcolumn(d,9)
 dropcolumn(d,9)
+dropcolumn(t,9)
+dropcolumn(t,9)
 h.pop(9)
 h.pop(9)
 makefloat(d)
+makefloat(t)
 #comparable=[True,False,False,False,True,True,True,True,True]
 comparable =[True,True,True,True,True,True,True,True,True]
 h = list(map(lambda x,y: [x,y] , h , comparable))
 print(error(d))
 trees=[]
+
 for i in range(0,nrtree):
     print(i)
     ds=sample(d)
@@ -241,75 +257,49 @@ for i in range(0,nrtree):
     trees.append(tt)
 
     p=prediction
-print(fin_error2(d,trees,p))
-val,pred=biggest_dif2(d,trees,p)
-print("biggest difference:\nval:"+str(val)+" pred:"+str(pred))
-val,pred=smallest_dif2(d,trees,p)
-print("smallest difference:\nval:"+str(val)+" pred:"+str(pred))
+print("MSE with our algorithm: "+str(fin_error2(t,trees,p)))
 
-import numpy as np 
-import matplotlib.pyplot as plt
 
 oval=[]
 predval=[]
-for e in d:
+for e in t:
     oval.append(e[-1])
     predval.append(p(trees,e))
 
 fig=plt.figure()
 ax=fig.add_subplot(111)
-ax.plot(np.array(range(1,len(d)+1)),np.array(oval),c='y', label="Original")
-ax.plot(np.array(range(1,len(d)+1)),np.array(predval),c='r', label="Predicted")
+ax.plot(np.array(range(1,len(t)+1)),np.array(oval),c='y', label="Original")
+ax.plot(np.array(range(1,len(t)+1)),np.array(predval),c='r', label="Predicted")
 ax.set_xlabel("Depth")
 ax.set_ylabel("Error%")
 ax.legend(loc='upper right')
 fig.show()
 
-'''
-import pandas as pd  
 
-dataset = pd.read_csv("train.csv")
-X = dataset.iloc[:,0:8].values
-y = dataset.iloc[:,11].values
 
-for e in range(0,len(d)):
-    astr= X[e,0]
-    astr=astr.split(' ')
-    astr[0]=astr[0].split('-')
-    astr[1]=astr[1].split(':')
-    if not onlyhour:
-        astr=astr[0]+astr[1]
-    else:
-        astr=astr[1]
-    sum=0
-    for k in astr:
-        sum*=100
-        sum+=float(k)
-    X[e,0]=sum
+
+X=np.array(d);
+print(X.shape)
+X_test=np.array(t)
+
+y=X[:,-1]
+print(y.shape)
 
 from sklearn.ensemble import RandomForestRegressor
 
 regressor = RandomForestRegressor(n_estimators=10, random_state=0)  
 regressor.fit(X, y)  
-y_pred = regressor.predict(X)  
+y_pred = regressor.predict(X_test)  
 from sklearn import metrics
 
-print('Mean Absolute Error:', metrics.mean_absolute_error(y, y_pred))  
-print('Mean Squared Error:', metrics.mean_squared_error(y, y_pred))  
-print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y, y_pred))) 
+print('MSE with sklearn:', metrics.mean_squared_error(np.array(oval), y_pred))  
 
-oval=[]
-predval=[]
-for e in d:
-    oval.append(e[-1])
-    predval.append(p(trees,e))
 
 fig=plt.figure()
 ax=fig.add_subplot(111)
-ax.plot(np.array(range(1,len(d)+1)),np.array(oval),c='y', label="Original")
-ax.plot(np.array(range(1,len(d)+1)),y_pred,c='r', label="Predicted")
+ax.plot(np.array(range(1,len(t)+1)),np.array(oval),c='y', label="Original")
+ax.plot(np.array(range(1,len(t)+1)),y_pred,c='r', label="Predicted")
 ax.set_xlabel("Depth")
 ax.set_ylabel("Error%")
 ax.legend(loc='upper right')
 fig.show()
-'''
