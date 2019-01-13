@@ -78,7 +78,7 @@ def error(data):
         error+= (avg - i[-1])**2
     error/= len(data)
     return error
-def buildtree(data,criteria,o_criteria,prev_avg=-1):
+def buildtree(data,o_criteria,a_criteria,prev_avg=-1):
     '''
     build a tree with the given subspace 
     '''
@@ -88,9 +88,11 @@ def buildtree(data,criteria,o_criteria,prev_avg=-1):
     for i in data:
         avg+=i[-1]
     avg/= len(data)
+    if len(data)<2:
+        return [avg]
+    criteria=sample(a_criteria, 75 ,100)
     if criteria==[]:
         return [avg]
-
     best_c,best_v,best_e=["",False],9999,float("inf")
     for c in criteria:
         ci=index(o_criteria,c)
@@ -107,7 +109,7 @@ def buildtree(data,criteria,o_criteria,prev_avg=-1):
                 else:
                     terror=error(l)
                     terror+=error(r)
-                if(terror<best_e or best_e==float("inf")):
+                if(terror<best_e or best_e==float("inf")) and len(l) != 0 and len(r) !=0 :
                     best_c=c
                     best_v=data[ind][ci]
                     best_e=terror
@@ -131,14 +133,21 @@ def buildtree(data,criteria,o_criteria,prev_avg=-1):
                     best_e=terror
 
 
-    cu=list(criteria)
     l,r=split(data,lambda x: x[index(o_criteria,best_c)]>=best_v)
-    if len(l) == 0 or len(r) == 0:
-        cu.remove(best_c)
+    cu=list(a_criteria)
+    #if len(l) == 0 or len(r) == 0:
+    #    cu.remove(best_c)
+    #print(str(len(l))+", "+str(len(r))+"    "+best_c[0]+"    "+str(best_v))
+    if best_c[0]=="":
+        return [avg]
+    if len(l)==0:
+        return buildtree(r,o_criteria,cu,avg)
+    if len(r)==0:
+        return buildtree(l,o_criteria,cu,avg)
     if(c[1]):
-        return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
+        return [lambda x: x[index(o_criteria,best_c)]>=best_v, buildtree(l,o_criteria,cu,avg),buildtree(r,o_criteria,cu,avg)]
     else:
-        return [lambda x: x[index(o_criteria,best_c)]==best_v, buildtree(l,cu,o_criteria,avg),buildtree(r,cu,o_criteria,avg)]
+        return [lambda x: x[index(o_criteria,best_c)]==best_v, buildtree(l,o_criteria,cu,avg),buildtree(r,o_criteria,cu,avg)]
 
 def prediction(trees, item):
     '''
@@ -228,9 +237,7 @@ trees=[]
 for i in range(0,nrtree):
     print(i)
     ds=sample(d)
-    c=sample(h,80,100)
-    print([thing[0] for thing in c])
-    tt=buildtree(ds,c,h)
+    tt=buildtree(ds,h,h)
     trees.append(tt)
 
     p=prediction
